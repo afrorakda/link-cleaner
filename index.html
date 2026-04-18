@@ -24,7 +24,12 @@
             -webkit-tap-highlight-color: transparent; 
             margin: 0; padding: 0;
             touch-action: manipulation; 
+            /* 長押し選択を基本無効化（input以外） */
+            -webkit-user-select: none;
+            user-select: none;
         }
+
+        input { -webkit-user-select: text; user-select: text; }
 
         body {
             background-color: var(--bg); color: var(--main);
@@ -53,7 +58,13 @@
         }
         .result-card:active { transform: scale(0.98); background: var(--accent); }
         .section-label { font-size: 0.65rem; font-weight: 800; color: #ccc; text-transform: uppercase; margin-bottom: 12px; letter-spacing: 0.5px; }
-        #finalURL { font-size: 1rem; font-weight: 800; color: var(--main); word-break: break-all; text-align: center; line-height: 1.3; }
+        
+        #finalURL { 
+            font-size: 1rem; font-weight: 800; color: var(--main); 
+            word-break: break-all; text-align: center; line-height: 1.3;
+            transition: color 0.2s;
+        }
+        #finalURL.shredded-too-much { color: #bbb; } /* 切りすぎ警告色 */
 
         .subtitle { color: var(--warning); font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; text-align: center;}
 
@@ -63,6 +74,7 @@
             font-size: 0.75rem; color: var(--warning); line-height: 1.4; font-weight: 700;
             margin-bottom: 20px; border: 1px solid #ffebeb;
         }
+        .pure-link-hint { display: block; margin-top: 8px; font-size: 0.7rem; color: #999; text-decoration: underline; cursor: pointer; }
 
         /* Input Section */
         .input-section { width: 100%; margin-bottom: 20px; position: relative; }
@@ -129,7 +141,8 @@
     </div>
 
     <div class="caution-box">
-        Removes ALL parameters (after '?'). Note: This may break specific site features like YouTube timestamps or Search filters.
+        Removes ALL parameters (after '?'). Note: This may break specific features like YouTube timestamps.
+        <span class="pure-link-hint" onclick="location.href='https://afrorakda.github.io/pure-link/'">Use "Pure Link" for safer cleaning</span>
     </div>
 
     <div class="input-section">
@@ -180,14 +193,28 @@
         
         if (!val) {
             finalURL.textContent = "---";
+            finalURL.classList.remove('shredded-too-much');
             return;
         }
-        // split by '?' and take the first part
+        
         const shredded = val.split('?')[0];
         finalURL.textContent = shredded;
+
+        // 警告ロジック：ドメインより後ろが極端に短い（例: youtube.com/watch しかない等）場合に色を薄める
+        const pathOnly = shredded.replace(/^https?:\/\//, '').split('/');
+        if (pathOnly.length <= 2 && pathOnly[1] === "") {
+            finalURL.classList.add('shredded-too-much');
+        } else {
+            finalURL.classList.remove('shredded-too-much');
+        }
     }
 
     urlInput.oninput = shred;
+    
+    // フォーカス時に全選択
+    urlInput.onfocus = () => {
+        setTimeout(() => urlInput.select(), 10);
+    };
 
     function flashButton(btn, tempText) {
         const originalText = btn.textContent;
